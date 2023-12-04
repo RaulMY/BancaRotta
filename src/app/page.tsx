@@ -5,11 +5,11 @@ import Header from '../components/Header';
 export default function HomePage() {
   return (
     <div>
-    <Header />
+      <Header />
+      <Container>
 
-    <Container>
-      <Chart />
-    </Container>
+        <Chart />
+      </Container>
     </div>
   );
 }
