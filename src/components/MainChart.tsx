@@ -161,6 +161,11 @@ const Heatmap: React.FC = () => {
         return (industry === 'All of them' || industry === GICS_sector) && (size === 'All of them' || size === market_cap_category_fix) && hasBeenFound ? 1 : 0.5;
       })
       .on('click', (_, d) => {
+        const element = document.getElementById('companySection');
+        console.log(element);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         setCompany(d[3]);
       })
       .on('mouseover', function (event, d) {
@@ -190,11 +195,20 @@ const Heatmap: React.FC = () => {
 
   return (
     <div className='flex items-center flex-col'>
-      <div id="heatmap" className='relative'>
-        <svg ref={heatmapRef} width={300} height={300}>
-          {/* SVG container for the heatmap */}
-        </svg>
+      <div className='w-full grid gap-y-4 mt-4 md:grid-cols-2 lg:grid-cols-3 md:gap-x-4'>
+        <div className='lg:order-1'>
+          <RadioCards title="Pick a sector" value={industry} options={industryOptions} onChange={(name: string) => setIndustry(name)}/>
+        </div>
+        <div id="heatmap" className='relative flex justify-center order-first md:col-span-2 lg:order-2 lg:col-span-1'>
+          <svg ref={heatmapRef} width={300} height={300}>
+            {/* SVG container for the heatmap */}
+          </svg>
+        </div>
+        <div className='lg:order-2'>
+          <RadioCards title="Pick a market size" value={size} options={sizesOptions} onChange={(name: string) => setSize(name)}/>
+        </div>
       </div>
+
       <div>
         <Autocomplete
           disablePortal
@@ -214,13 +228,10 @@ const Heatmap: React.FC = () => {
         />} label="Use threshold" />
         {withThreshold ? <Slider value={threshold} onChange={(event) => setThreshold(Number(event.target.value))}/> : null}
       </div>
-      <div className='grid gap-y-4 mt-4 md:grid-cols-2 lg:grid-cols-3 md:gap-x-4'>
-        <div className='lg:order-1'>
-          <RadioCards title="Pick a sector" value={industry} options={industryOptions} onChange={(name: string) => setIndustry(name)}/>
-        </div>
-        <div className='order-first md:col-span-2 lg:order-2 lg:col-span-1'>
-          {company && (
-            <>
+      <div id="companySection" className='grid gap-y-4 mt-4 md:grid-cols-2 md:gap-x-4'>
+        {company && (
+          <>
+            <div className=''>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base font-semibold leading-7 text-gray-900">{company.company_name}</h3>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(company.score_full_30) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
@@ -253,21 +264,17 @@ const Heatmap: React.FC = () => {
                       {company.GICS_industry}
                     </dd>
                   </div>
-                  <div className="px-4 py-6">
-                    <dt className="text-sm font-medium leading-6 text-gray-900">Text sample</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">
-                      {company.section_7}
-                    </dd>
-                  </div>
                 </dl>
               </div>
-            </>
-            
-          )}
-        </div>
-        <div className='lg:order-2'>
-          <RadioCards title="Pick a market size" value={size} options={sizesOptions} onChange={(name: string) => setSize(name)}/>
-        </div>
+            </div>
+            <div className="px-4 py-6">
+              <dt className="text-sm font-medium leading-6 text-gray-900">Sample text</dt>
+              <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">
+                {company.section_7}
+              </dd>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
