@@ -10,8 +10,8 @@ const RadioCards = ({ title, value, options, onChange }: { title: string; value:
     <div>
       <h3 className="mb-5 text-lg text-center font-medium text-gray-900 dark:text-white">{title}</h3>
       <ul className="grid w-full gap-6 grid-cols-2 md:grid-cols-3">
-        {options.map(({ name, amount }) => (
-          <li>
+        {options.map(({ name, amount }, i) => (
+          <li key={`${i}_name`}>
             <label
               htmlFor="hosting-small"
               onClick={() => onChange(name)}

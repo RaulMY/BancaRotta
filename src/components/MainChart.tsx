@@ -1,21 +1,22 @@
 'use client'
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import * as d3 from 'd3';
-import datapoints from '../utils/test_data_webapp.json';
+import datapoints from '../utils/final_webapp_clean.json';
 import Slider from './Slider';
 import RadioCards from './RadioCards';
-import { FormControlLabel, Switch } from '@mui/material';
+import { FormControlLabel, Switch, Autocomplete, TextField } from '@mui/material';
 
 interface Datapoint {
   cik: string;
   mrktCap: string;
   company_name: string;
   market_cap_category_fix: string;
-  date: string;
+  filing_date: string;
   GICS_sector: string;
   GICS_industry_group: string;
   GICS_industry: string;
-  score: string;
+  score_full_30: string;
+  section_7: string;
 }
 
 const industryOptions = [
@@ -96,29 +97,35 @@ const sizesOptions = [
   },
 ];
 
+const filtered: Datapoint[] = datapoints.filter((datapoint) => {
+  const filingDate = new Date(datapoint.filing_date);
+  return filingDate.getFullYear() === 2023 && datapoint.company_name;
+})
+
+const nameOptions = filtered.map((datapoint, i) => ({ label: datapoint.company_name, id: `${i}_name` }));
+
 const Heatmap: React.FC = () => {
   const heatmapRef = useRef<SVGSVGElement | null>(null);
   const width = 400;
   const height = 400;
-  const gridSize = 60;
+  const gridSize = 55;
 
   const [company, setCompany] = useState<Datapoint | null>(null);
   const [industry, setIndustry] = useState<string>('All of them');
   const [size, setSize] = useState<string>('All of them');
-  const [threshold, setThreshold] = useState<number>(0.5);
+  const [threshold, setThreshold] = useState<number>(0.3);
   const [withThreshold, toggleThreshold] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
-    console.log(threshold);
     const svg = d3.select(heatmapRef.current)
     .attr('width', width)
     .attr('height', height);
-
-    const data: [number, number, number, Datapoint][] = datapoints.map((datapoint, i) => {
-      const { score } = datapoint;
+    const data: [number, number, number, Datapoint][] = filtered.map((datapoint, i) => {
+      const { score_full_30 } = datapoint;
       const x = i % gridSize;
       const y = Math.floor(i/gridSize);
-      return [x, y, Number(score), datapoint]
+      return [x, y, Number(score_full_30), datapoint]
     });
     const colorScale = d3.scaleSequential([0, 1], ["rgb(41, 172, 0)", "rgb(234, 23, 47)"]);
 
@@ -149,8 +156,9 @@ const Heatmap: React.FC = () => {
         return colorScale(d[2])
       })
       .attr('fill-opacity', (d) => {
-        const { GICS_sector, market_cap_category_fix } = d[3];
-        return (industry === 'All of them' || industry === GICS_sector) && (size === 'All of them' || size === market_cap_category_fix) ? 1 : 0.5;
+        const { GICS_sector, market_cap_category_fix, company_name } = d[3];
+        const hasBeenFound = searchTerm ? company_name.toLocaleLowerCase().indexOf(searchTerm.toLocaleLowerCase()) !== -1 : true;
+        return (industry === 'All of them' || industry === GICS_sector) && (size === 'All of them' || size === market_cap_category_fix) && hasBeenFound ? 1 : 0.5;
       })
       .on('click', (_, d) => {
         setCompany(d[3]);
@@ -167,7 +175,18 @@ const Heatmap: React.FC = () => {
         tooltip.style('visibility', 'hidden');
         d3.select(this).attr('fill', colorScale(withThreshold ? (d[2] >= threshold ? 1 : 0) : d[2])); // Revert color on mouseout
       });
-  }, [threshold, industry, size, withThreshold]);
+  }, [threshold, industry, size, withThreshold, searchTerm]);
+
+  const handleCompanyChange = (_: SyntheticEvent<Element, Event>, value: { label: string; id: string; } | null) => {
+    const companyName = value;
+    const chosenCompany = filtered.find((datapoint) => datapoint.company_name === companyName?.label);
+    if (!chosenCompany) return;
+    setCompany(chosenCompany);
+  };
+
+  const handleCompanyInput = (_: SyntheticEvent<Element, Event>, value: string) => {
+    setSearchTerm(value);
+  };
 
   return (
     <div className='flex items-center flex-col'>
@@ -175,6 +194,17 @@ const Heatmap: React.FC = () => {
         <svg ref={heatmapRef} width={300} height={300}>
           {/* SVG container for the heatmap */}
         </svg>
+      </div>
+      <div>
+        <Autocomplete
+          disablePortal
+          id="company-name"
+          options={nameOptions}
+          sx={{ width: 300 }}
+          onChange={handleCompanyChange}
+          onInputChange={handleCompanyInput}
+          renderInput={(params) => <TextField {...params} label="Company" />}
+        />
       </div>
       <div className='grid grid-cols-2 mb-2'>
         <FormControlLabel control={<Switch
@@ -193,13 +223,13 @@ const Heatmap: React.FC = () => {
             <>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base font-semibold leading-7 text-gray-900">{company.company_name}</h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(company.score) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(company.score_full_30) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
               </div>
               <div className="mt-6 border-t border-gray-100">
                 <dl className="divide-y divide-gray-100">
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">FinBERT Score</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(company.score).toFixed(4)}</dd>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(company.score_full_30).toFixed(4)}</dd>
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">Market Cap</dt>
@@ -207,7 +237,7 @@ const Heatmap: React.FC = () => {
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">10-K filed on</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{company.date}</dd>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{company.filing_date}</dd>
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">GICS Sector</dt>
@@ -221,6 +251,12 @@ const Heatmap: React.FC = () => {
                     <dt className="text-sm font-medium leading-6 text-gray-900">GICS Industry</dt>
                     <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">
                       {company.GICS_industry}
+                    </dd>
+                  </div>
+                  <div className="px-4 py-6">
+                    <dt className="text-sm font-medium leading-6 text-gray-900">Text sample</dt>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">
+                      {company.section_7}
                     </dd>
                   </div>
                 </dl>
