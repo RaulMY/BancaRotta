@@ -162,7 +162,6 @@ const Heatmap: React.FC = () => {
       })
       .on('click', (_, d) => {
         const element = document.getElementById('companySection');
-        console.log(element);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -195,21 +194,23 @@ const Heatmap: React.FC = () => {
 
   return (
     <div className='flex items-center flex-col'>
-      <div className='w-full grid gap-y-4 mt-4 md:grid-cols-2 lg:grid-cols-3 md:gap-x-4'>
-        <div className='lg:order-1'>
+      <div className='w-full grid gap-y-4 mt-4 md:grid-cols-2 lg:grid-cols-7 md:gap-x-4'>
+        <div className='lg:order-1 lg:col-span-2'>
           <RadioCards title="Pick a sector" value={industry} options={industryOptions} onChange={(name: string) => setIndustry(name)}/>
         </div>
-        <div id="heatmap" className='relative flex justify-center order-first md:col-span-2 lg:order-2 lg:col-span-1'>
-          <svg ref={heatmapRef} width={300} height={300}>
-            {/* SVG container for the heatmap */}
-          </svg>
+        <div className='flex justify-center order-first md:col-span-2 lg:order-2 lg:col-span-3'>
+          <div id="heatmap" className='relative'>
+            <svg ref={heatmapRef} width={400} height={400}>
+              {/* SVG container for the heatmap */}
+            </svg>
+          </div>
         </div>
-        <div className='lg:order-2'>
+        <div className='lg:order-2 lg:col-span-2'>
           <RadioCards title="Pick a market size" value={size} options={sizesOptions} onChange={(name: string) => setSize(name)}/>
         </div>
       </div>
 
-      <div>
+      <div className='mt-4'>
         <Autocomplete
           disablePortal
           id="company-name"
