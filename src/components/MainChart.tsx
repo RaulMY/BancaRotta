@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, Fragment, type SyntheticEvent } from 'react';
 import * as d3 from 'd3';
 import datapoints from '../utils/final_webapp_clean.json';
 import Slider from './Slider';
@@ -16,6 +16,7 @@ interface Datapoint {
   GICS_industry_group: string;
   GICS_industry: string;
   score_full_30: string;
+  max_score: string;
   section_7: string;
 }
 
@@ -97,6 +98,8 @@ const sizesOptions = [
   },
 ];
 
+const distressWords = ['covenant', 'default', 'breach', 'violate', 'amend', 'restrictive', 'waiver', 'Chapter 11', 'Chapter 7', 'downgrade','bankruptcy'];
+
 const filtered: Datapoint[] = datapoints.filter((datapoint) => {
   const filingDate = new Date(datapoint.filing_date);
   return filingDate.getFullYear() === 2023 && datapoint.company_name;
@@ -115,6 +118,7 @@ const Heatmap: React.FC = () => {
   const [size, setSize] = useState<string>('All of them');
   const [threshold, setThreshold] = useState<number>(0.3);
   const [withThreshold, toggleThreshold] = useState<boolean>(true);
+  const [withMaxScore, toggleMaxScore] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
@@ -122,10 +126,10 @@ const Heatmap: React.FC = () => {
     .attr('width', width)
     .attr('height', height);
     const data: [number, number, number, Datapoint][] = filtered.map((datapoint, i) => {
-      const { score_full_30 } = datapoint;
+      const { max_score, score_full_30 } = datapoint;
       const x = i % gridSize;
       const y = Math.floor(i/gridSize);
-      return [x, y, Number(score_full_30), datapoint]
+      return [x, y, Number(withMaxScore ? max_score : score_full_30), datapoint]
     });
     const colorScale = d3.scaleSequential([0, 1], ["rgb(41, 172, 0)", "rgb(234, 23, 47)"]);
 
@@ -179,7 +183,7 @@ const Heatmap: React.FC = () => {
         tooltip.style('visibility', 'hidden');
         d3.select(this).attr('fill', colorScale(withThreshold ? (d[2] >= threshold ? 1 : 0) : d[2])); // Revert color on mouseout
       });
-  }, [threshold, industry, size, withThreshold, searchTerm]);
+  }, [threshold, industry, size, withThreshold, searchTerm, withMaxScore]);
 
   const handleCompanyChange = (_: SyntheticEvent<Element, Event>, value: { label: string; id: string; } | null) => {
     const companyName = value;
@@ -190,6 +194,22 @@ const Heatmap: React.FC = () => {
 
   const handleCompanyInput = (_: SyntheticEvent<Element, Event>, value: string) => {
     setSearchTerm(value);
+  };
+
+  const highlightWords = (text: string, wordsToHighlight: string[]): JSX.Element => {
+    const regex = new RegExp(`\\b(${wordsToHighlight.join('|')})\\b`, 'gi');
+    const parts = text.split(regex);
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (wordsToHighlight.includes(part.toLowerCase())) {
+            return <span className="underline text-green-500" key={index}>{part}</span>;
+          }
+          return <Fragment key={index}>{part}</Fragment>;
+        })}
+      </>
+    );
   };
 
   return (
@@ -221,6 +241,11 @@ const Heatmap: React.FC = () => {
           renderInput={(params) => <TextField {...params} label="Company" />}
         />
       </div>
+      <FormControlLabel control={<Switch
+          checked={withMaxScore}
+          onChange={() => toggleMaxScore(prev => !prev)}
+          inputProps={{ 'aria-label': 'controlled' }}
+        />} label="Use max score" />
       <div className='grid grid-cols-2 mb-2'>
         <FormControlLabel control={<Switch
           checked={withThreshold}
@@ -235,13 +260,13 @@ const Heatmap: React.FC = () => {
             <div className=''>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base font-semibold leading-7 text-gray-900">{company.company_name}</h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(company.score_full_30) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(withMaxScore ? company.max_score : company.score_full_30) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
               </div>
               <div className="mt-6 border-t border-gray-100">
                 <dl className="divide-y divide-gray-100">
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">FinBERT Score</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(company.score_full_30).toFixed(4)}</dd>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(withMaxScore ? company.max_score : company.score_full_30).toFixed(4)}</dd>
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">Market Cap</dt>
@@ -269,9 +294,9 @@ const Heatmap: React.FC = () => {
               </div>
             </div>
             <div className="px-4 py-6">
-              <dt className="text-sm font-medium leading-6 text-gray-900">Sample text</dt>
+              <dt className="text-sm font-medium leading-6 text-gray-900">Highest Scoring Chunk</dt>
               <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">
-                {company.section_7}
+                {highlightWords(company.section_7, distressWords)}
               </dd>
             </div>
           </>
