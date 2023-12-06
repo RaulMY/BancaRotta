@@ -211,7 +211,7 @@ const Heatmap: React.FC = () => {
       <>
         {parts.map((part, index) => {
           if (wordsToHighlight.includes(part.toLowerCase())) {
-            return <span className="bold text-red-500" key={index}>{part}</span>;
+            return <span className="font-bold text-red-500" key={index}>{part}</span>;
           }
           return <Fragment key={index}>{part}</Fragment>;
         })}
