@@ -185,6 +185,13 @@ const Heatmap: React.FC = () => {
       });
   }, [threshold, industry, size, withThreshold, searchTerm, withMaxScore]);
 
+  useEffect(() => {
+    if (!withThreshold) {
+      const newThreshold = withMaxScore ? 0.65 : 0.3;
+      setThreshold(newThreshold);
+    }
+  }, [withThreshold, withMaxScore]);
+
   const handleCompanyChange = (_: SyntheticEvent<Element, Event>, value: { label: string; id: string; } | null) => {
     const companyName = value;
     const chosenCompany = filtered.find((datapoint) => datapoint.company_name === companyName?.label);
