@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, Fragment, type SyntheticEvent } from 'react';
 import * as d3 from 'd3';
-import datapoints from '../utils/final_webapp_clean.json';
+import datapoints from '../utils/final_webapp_all_10_epoch.json';
 import Slider from './Slider';
 import RadioCards from './RadioCards';
 import { FormControlLabel, Switch, Autocomplete, TextField } from '@mui/material';
@@ -15,7 +15,7 @@ interface Datapoint {
   GICS_sector: string;
   GICS_industry_group: string;
   GICS_industry: string;
-  score_full_30: string;
+  score_chunks: string;
   max_score: string;
   section_7: string;
 }
@@ -126,10 +126,10 @@ const Heatmap: React.FC = () => {
     .attr('width', width)
     .attr('height', height);
     const data: [number, number, number, Datapoint][] = filtered.map((datapoint, i) => {
-      const { max_score, score_full_30 } = datapoint;
+      const { max_score, score_chunks } = datapoint;
       const x = i % gridSize;
       const y = Math.floor(i/gridSize);
-      return [x, y, Number(withMaxScore ? max_score : score_full_30), datapoint]
+      return [x, y, Number(withMaxScore ? max_score : score_chunks), datapoint]
     });
     const colorScale = d3.scaleSequential([0, 1], ["rgb(41, 172, 0)", "rgb(234, 23, 47)"]);
 
@@ -267,13 +267,13 @@ const Heatmap: React.FC = () => {
             <div className=''>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base font-semibold leading-7 text-gray-900">{company.company_name}</h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(withMaxScore ? company.max_score : company.score_full_30) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(withMaxScore ? company.max_score : company.score_chunks) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
               </div>
               <div className="mt-6 border-t border-gray-100">
                 <dl className="divide-y divide-gray-100">
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">FinBERT Score</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(withMaxScore ? company.max_score : company.score_full_30).toFixed(4)}</dd>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(withMaxScore ? company.max_score : company.score_chunks).toFixed(4)}</dd>
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">Market Cap</dt>
