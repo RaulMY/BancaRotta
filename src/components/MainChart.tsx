@@ -201,6 +201,10 @@ const Heatmap: React.FC = () => {
 
   const handleCompanyChange = (_: SyntheticEvent<Element, Event>, value: { label: string; id: string; } | null) => {
     const companyName = value;
+    const filtered: Datapoint[] = datapoints.filter((datapoint) => {
+      const filingDate = new Date(datapoint.filing_date);
+      return filingDate.getFullYear() === year && datapoint.company_name;
+    })
     const chosenCompany = filtered.find((datapoint) => datapoint.company_name === companyName?.label);
     if (!chosenCompany) return;
     setCompany(chosenCompany);
