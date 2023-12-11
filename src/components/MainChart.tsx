@@ -106,7 +106,7 @@ const Heatmap: React.FC = () => {
   const heatmapRef = useRef<SVGSVGElement | null>(null);
   const width = 400;
   const height = 400;
-  const gridSize = 55;
+  const gridSize = 58;
 
   const [company, setCompany] = useState<Datapoint | null>(null);
   const [year, setYear] = useState<number>(2023);
@@ -194,7 +194,7 @@ const Heatmap: React.FC = () => {
 
   useEffect(() => {
     if (!withThreshold) {
-      const newThreshold = withMaxScore ? 0.65 : 0.3;
+      const newThreshold = withMaxScore ? 0.65 : 0.4;
       setThreshold(newThreshold);
     }
   }, [withThreshold, withMaxScore]);
