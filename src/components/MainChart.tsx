@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, Fragment, type SyntheticEvent } from 'react';
 import * as d3 from 'd3';
-import datapoints from '../utils/final_webapp_all_10_epoch.json';
+import datapoints from '../utils/final_webapp_lean_5_epoch.json';
 import Slider from './Slider';
 import RadioCards from './RadioCards';
 import { FormControlLabel, Switch, Autocomplete, TextField } from '@mui/material';
@@ -16,6 +16,8 @@ interface Datapoint {
   GICS_industry_group: string;
   GICS_industry: string;
   score_chunks: string;
+  score_distress: string;
+  average_score: string;
   max_score: string;
   section_7: string;
 }
@@ -100,13 +102,6 @@ const sizesOptions = [
 
 const distressWords = ['covenant', 'default', 'breach', 'violate', 'amend', 'restrictive', 'waiver', 'Chapter 11', 'Chapter 7', 'downgrade','bankruptcy'];
 
-const filtered: Datapoint[] = datapoints.filter((datapoint) => {
-  const filingDate = new Date(datapoint.filing_date);
-  return filingDate.getFullYear() === 2023 && datapoint.company_name;
-})
-
-const nameOptions = filtered.map((datapoint, i) => ({ label: datapoint.company_name, id: `${i}_name` }));
-
 const Heatmap: React.FC = () => {
   const heatmapRef = useRef<SVGSVGElement | null>(null);
   const width = 400;
@@ -114,22 +109,34 @@ const Heatmap: React.FC = () => {
   const gridSize = 55;
 
   const [company, setCompany] = useState<Datapoint | null>(null);
+  const [year, setYear] = useState<number>(2023);
   const [industry, setIndustry] = useState<string>('All of them');
   const [size, setSize] = useState<string>('All of them');
-  const [threshold, setThreshold] = useState<number>(0.3);
+  const [threshold, setThreshold] = useState<number>(0.4);
   const [withThreshold, toggleThreshold] = useState<boolean>(true);
   const [withMaxScore, toggleMaxScore] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const nameOptions = datapoints.filter((datapoint) => {
+    const filingDate = new Date(datapoint.filing_date);
+    return filingDate.getFullYear() === year && datapoint.company_name;
+  }).map((datapoint, i) => ({ label: datapoint.company_name, id: `${i}_name` }));
 
   useEffect(() => {
     const svg = d3.select(heatmapRef.current)
     .attr('width', width)
     .attr('height', height);
+
+    const filtered: Datapoint[] = datapoints.filter((datapoint) => {
+      const filingDate = new Date(datapoint.filing_date);
+      return filingDate.getFullYear() === year && datapoint.company_name;
+    })
+
     const data: [number, number, number, Datapoint][] = filtered.map((datapoint, i) => {
-      const { max_score, score_chunks } = datapoint;
+      const { max_score, average_score } = datapoint;
       const x = i % gridSize;
       const y = Math.floor(i/gridSize);
-      return [x, y, Number(withMaxScore ? max_score : score_chunks), datapoint]
+      return [x, y, Number(withMaxScore ? max_score : average_score), datapoint]
     });
     const colorScale = d3.scaleSequential([0, 1], ["rgb(41, 172, 0)", "rgb(234, 23, 47)"]);
 
@@ -183,7 +190,7 @@ const Heatmap: React.FC = () => {
         tooltip.style('visibility', 'hidden');
         d3.select(this).attr('fill', colorScale(withThreshold ? (d[2] >= threshold ? 1 : 0) : d[2])); // Revert color on mouseout
       });
-  }, [threshold, industry, size, withThreshold, searchTerm, withMaxScore]);
+  }, [threshold, industry, size, withThreshold, searchTerm, withMaxScore, year]);
 
   useEffect(() => {
     if (!withThreshold) {
@@ -249,10 +256,10 @@ const Heatmap: React.FC = () => {
         />
       </div>
       <FormControlLabel control={<Switch
-          checked={withMaxScore}
-          onChange={() => toggleMaxScore(prev => !prev)}
+          checked={year === 2023}
+          onChange={() => setYear(prev => prev === 2023 ? 2022 : 2023)}
           inputProps={{ 'aria-label': 'controlled' }}
-        />} label="Use max score" />
+        />} label={year === 2023 ? '2023' : '2022'} />
       <div className='grid grid-cols-2 mb-2'>
         <FormControlLabel control={<Switch
           checked={withThreshold}
@@ -267,13 +274,13 @@ const Heatmap: React.FC = () => {
             <div className=''>
               <div className="px-4 sm:px-0">
                 <h3 className="text-base font-semibold leading-7 text-gray-900">{company.company_name}</h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(withMaxScore ? company.max_score : company.score_chunks) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{Number(withMaxScore ? company.max_score : company.average_score) >= threshold ? 'Identified as possible bankruptcy' : 'Not identified as possible bankruptcy'}</p>
               </div>
               <div className="mt-6 border-t border-gray-100">
                 <dl className="divide-y divide-gray-100">
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">FinBERT Score</dt>
-                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(withMaxScore ? company.max_score : company.score_chunks).toFixed(4)}</dd>
+                    <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-0">{Number(withMaxScore ? company.max_score : company.average_score).toFixed(4)}</dd>
                   </div>
                   <div className="px-4 py-6 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-0">
                     <dt className="text-sm font-medium leading-6 text-gray-900">Market Cap</dt>
