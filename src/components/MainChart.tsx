@@ -100,7 +100,7 @@ const sizesOptions = [
   },
 ];
 
-const distressWords = ['covenant', 'default', 'breach', 'violate', 'amend', 'restrictive', 'waiver', 'Chapter 11', 'Chapter 7', 'downgrade','bankruptcy'];
+const distressWords = ['covenant', 'default', 'breach', 'violate', 'amend', 'restrictive', 'waiver', 'chapter 11', 'chapter 7', 'downgrade','bankruptcy'];
 
 const Heatmap: React.FC = () => {
   const heatmapRef = useRef<SVGSVGElement | null>(null);
