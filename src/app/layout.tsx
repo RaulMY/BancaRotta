@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Banca Rotta",
+  title: "Bancarotta",
   description: "Bankruptcy prediction",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
